@@ -1,0 +1,86 @@
+kind: Deployment
+apiVersion: apps/v1beta1
+metadata:
+  name: coffee-shop
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: coffee-shop
+    spec:
+      containers:
+      - name: coffee-shop
+        image: docker.sebastian-daschner.com/coffee-shop:6
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 200m
+          limits:
+            memory: 1G
+            cpu: 1
+        readinessProbe:
+          httpGet:
+            path: /coffee-shop/resources/health
+            port: 9080
+          failureThreshold: 2
+          periodSeconds: 5
+          initialDelaySeconds: 60
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/bash", "-c", "curl localhost:9080/coffee-shop/resources/health -XDELETE && sleep 25"]
+        volumeMounts:
+        - name: coffee-shop-config-volume
+          mountPath: /config/application.properties
+          subPath: application.properties
+          readOnly: true
+        - name: coffee-shop-processor-credentials-volume
+          mountPath: /config/credentials.properties
+          subPath: credentials.properties
+          readOnly: true
+        - name: coffee-shop-database-credentials-volume
+          mountPath: /opt/wlp/usr/servers/defaultServer/bootstrap.properties
+          subPath: bootstrap.properties
+          readOnly: true
+      volumes:
+      - name: coffee-shop-config-volume
+        configMap:
+          name: coffee-shop-config
+      - name: coffee-shop-processor-credentials-volume
+        secret:
+          secretName: coffee-shop-processor-credentials
+      - name: coffee-shop-database-credentials-volume
+        secret:
+          secretName: coffee-shop-database-credentials
+      imagePullSecrets:
+      - name: regsecret
+      restartPolicy: Always
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: coffee-shop
+spec:
+  selector:
+    app: coffee-shop
+  ports:
+    - port: 9080
+      name: http
+  type: NodePort
+---
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: coffee-shop
+spec:
+  rules:
+    - host: coffee-shop.kubernetes.local
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: coffee-shop
+            servicePort: 9080
+---

@@ -1,0 +1,8 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: coffee-shop-config
+  namespace: staging
+data:
+  application.properties: |
+    region=eu-east

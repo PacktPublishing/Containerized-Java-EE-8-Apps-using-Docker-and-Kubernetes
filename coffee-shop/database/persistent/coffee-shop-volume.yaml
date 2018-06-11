@@ -1,0 +1,15 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: coffee-shop-db-volume
+  labels:
+    storage: coffee-shop-db
+spec:
+  capacity:
+    storage: 5Gi
+  storageClassName: default
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /home/coffee-shop-db/
